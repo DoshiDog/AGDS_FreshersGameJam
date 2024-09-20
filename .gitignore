@@ -82,7 +82,7 @@ Content/Assets/*
 *.sln.iml
 
 # Ignore user-specific Rider settings
-.idea/**/workspace.xml
+.idea/**/.idea/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
 .idea/**/shelf/
