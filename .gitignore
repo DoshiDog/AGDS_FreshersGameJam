@@ -75,3 +75,64 @@ DerivedDataCache/*
 
 # Assets folder
 Content/Assets/*
+
+
+# Ignore Rider-specific files and folders
+.idea/
+*.sln.iml
+
+# Ignore user-specific Rider settings
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
+.idea/**/vcs.xml
+.idea/**/gradle.xml
+.idea/**/modules.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/.idea/discord.xml
+.idea/**/.idea/cody_history.xml
+.idea/**/target/
+.idea/**/jsLinters/
+.idea/**/libraries/
+
+# Ignore Rider-generated caches
+.idea/caches/
+.idea/assetWizard/
+.idea/assetIndex/
+
+# Ignore solution-specific Rider files
+*.DotSettings
+*.DotSettings.user
+
+# Ignore build outputs
+bin/
+obj/
+out/
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.log
+*.user
+*.userossc
+*.sln.docstates
+
+# Ignore Rider-specific plugin files
+.idea/**/RiderProjects/
+.idea/**/Rider/
+.idea/**/backpack/
+.idea/**/Refactorings/
+.idea/**/StorageSchemas/
+
+# Ignore coverage and test result files
+coverage/
+*.coverage
+*.coveragexml
+*.testsettings
+*.vsmdi
+TestResults/
