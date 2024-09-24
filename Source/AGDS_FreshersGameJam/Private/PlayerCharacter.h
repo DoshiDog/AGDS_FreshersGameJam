@@ -25,23 +25,39 @@ public:
     UInputAction* MoveAction;
     UPROPERTY(EditDefaultsOnly, Category = "KeyBinds")
     UInputAction* JumpAction;
+	UPROPERTY(EditDefaultsOnly, Category = "KeyBinds")
+	UInputAction* ThrustAction;
+	UPROPERTY(EditDefaultsOnly, Category = "KeyBinds")
+	UInputAction* RollAction;
     
     UPROPERTY(EditDefaultsOnly, Category = "KeyBinds")
     UInputMappingContext* MappingContext;
-    
+	int CurrentRollVelocity;
+	FRotator TargetRotation;
+	int CurrentPitchVelocity;
+	int CurrentYawVelocity;
+	float PitchInput;
+	float YawInput;
+	float SmoothedPitchInput;
+	float SmoothedYawInput;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
+	void UpdateRotation(float DeltaTime);
+	void UpdateSmoothInput(float DeltaTime);
+	void CalculateTargetRotation();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
     virtual void PawnClientRestart() override;
-	
-private:
-    void Move(const FInputActionValue& ActionValue);
-    void Look(const FInputActionValue& ActionValue);
+	void Thrust(const FInputActionValue& ActionValue);
 
+private:
+    // void Move(const FInputActionValue& ActionValue);
+    void Look(const FInputActionValue& ActionValue);
+	void Roll(const FInputActionValue& ActionValue);
 };
