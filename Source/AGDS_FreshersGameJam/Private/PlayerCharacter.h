@@ -34,12 +34,21 @@ public:
     UInputMappingContext* MappingContext;
 	int CurrentRollVelocity;
 	FRotator TargetRotation;
+	int CurrentPitchVelocity;
+	int CurrentYawVelocity;
+	float PitchInput;
+	float YawInput;
+	float SmoothedPitchInput;
+	float SmoothedYawInput;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
+	void UpdateRotation(float DeltaTime);
+	void UpdateSmoothInput(float DeltaTime);
+	void CalculateTargetRotation();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

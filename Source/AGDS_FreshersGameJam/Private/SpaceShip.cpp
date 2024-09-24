@@ -1,23 +1,31 @@
-#include "PlayerCharacter.h"
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "SpaceShip.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
 
-// Constructor: Initialize the player character with default values and set up movement
-APlayerCharacter::APlayerCharacter(): LookAction(nullptr), ThrustAction(nullptr), RollAction(nullptr),
-                                      MappingContext(nullptr), CurrentRollVelocity(0.0f)
+// Constructor: Initialize the spaceship with default values and set up movement
+ASpaceShip::ASpaceShip(): LookAction(nullptr), ThrustAction(nullptr), RollAction(nullptr),
+                          MappingContext(nullptr), CurrentRollVelocity(0.0f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Set the character to flying mode for space-like movement
-	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-	GetCharacterMovement()->BrakingDecelerationFlying = 200.0f;
+	// Create and initialize the floating pawn movement component
+	FloatingPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("FloatingPawnMovement"));
+	FloatingPawnMovement->SetUpdatedComponent(GetRootComponent());
+	FloatingPawnMovement->MaxSpeed = 1000.0f;
+	FloatingPawnMovement->Acceleration = 400.0f;
+	FloatingPawnMovement->Deceleration = 200.0f;
 }
 
-void APlayerCharacter::BeginPlay() {Super::BeginPlay();}
+void ASpaceShip::BeginPlay()
+{
+	Super::BeginPlay();
+}
 
-// Main update function called every frame
-void APlayerCharacter::Tick(float DeltaTime)
+void ASpaceShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
@@ -26,12 +34,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 	CalculateTargetRotation();
 }
 
-// Smoothly interpolate the character's rotation towards the target rotation
-void APlayerCharacter::UpdateRotation(float DeltaTime)
+void ASpaceShip::UpdateRotation(float DeltaTime)
 {
 	FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 2.5f);
 	
-	// Apply roll velocity if it's significant
 	if (!FMath::IsNearlyZero(CurrentRollVelocity, 0.1f))
 	{
 		NewRotation.Roll += CurrentRollVelocity * DeltaTime;
@@ -40,8 +46,7 @@ void APlayerCharacter::UpdateRotation(float DeltaTime)
 	SetActorRotation(NewRotation);
 }
 
-// Smooth out input values for more fluid movement
-void APlayerCharacter::UpdateSmoothInput(float DeltaTime)
+void ASpaceShip::UpdateSmoothInput(float DeltaTime)
 {
 	const float SmoothingFactor = 0.2f;
 	const float InterpSpeed = 0.5f / SmoothingFactor;
@@ -49,29 +54,24 @@ void APlayerCharacter::UpdateSmoothInput(float DeltaTime)
 	SmoothedPitchInput = FMath::FInterpTo(SmoothedPitchInput, PitchInput, DeltaTime, InterpSpeed);
 	SmoothedYawInput = FMath::FInterpTo(SmoothedYawInput, YawInput, DeltaTime, InterpSpeed);
 
-	// Reset input values after smoothing
 	PitchInput = 0.0f;
 	YawInput = 0.0f;
 }
 
-// Calculate the target rotation based on smoothed input
-void APlayerCharacter::CalculateTargetRotation()
+void ASpaceShip::CalculateTargetRotation()
 {
 	FRotator CurrentRotation = GetActorRotation();
 	FVector UpVector = GetActorUpVector();
 	FVector RightVector = FVector::CrossProduct(GetActorForwardVector(), UpVector);
 
-	// Create quaternions for pitch and yaw rotations
 	FQuat PitchDelta = FQuat(RightVector, FMath::DegreesToRadians(SmoothedPitchInput));
 	FQuat YawDelta = FQuat(UpVector, FMath::DegreesToRadians(SmoothedYawInput));
 
-	// Combine rotations and convert back to FRotator
 	FQuat NewRotationQuat = YawDelta * PitchDelta * CurrentRotation.Quaternion();
 	TargetRotation = NewRotationQuat.Rotator();
 }
 
-// Handle look input (pitch and yaw)
-void APlayerCharacter::Look(const FInputActionValue& ActionValue)
+void ASpaceShip::Look(const FInputActionValue& ActionValue)
 {
 	if (Controller != nullptr)
 	{
@@ -84,48 +84,42 @@ void APlayerCharacter::Look(const FInputActionValue& ActionValue)
 	}
 }
 
-// Handle roll input
-void APlayerCharacter::Roll(const FInputActionValue& ActionValue)
+void ASpaceShip::Roll(const FInputActionValue& ActionValue)
 {
 	if (Controller != nullptr)
 	{
 		float RollInput = ActionValue[0];
 		
-		// Apply roll acceleration
 		float RollAcceleration = 300.0f;
 		CurrentRollVelocity += RollInput * RollAcceleration * GetWorld()->GetDeltaSeconds();
 		
-		// Clamp roll velocity to prevent excessive rolling
 		float MaxRollVelocity = 800.0f;
 		CurrentRollVelocity = FMath::Clamp(CurrentRollVelocity, -MaxRollVelocity, MaxRollVelocity);
 	}
 }
 
-// Set up input bindings for the player
-void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ASpaceShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	if (UEnhancedInputComponent* PlayerEnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// Bind actions to their respective functions
 		if (ThrustAction) 
 		{
-			PlayerEnhancedInputComponent->BindAction(ThrustAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Thrust);
+			PlayerEnhancedInputComponent->BindAction(ThrustAction, ETriggerEvent::Triggered, this, &ASpaceShip::Thrust);
 		}
 		if (LookAction)
 		{
-			PlayerEnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
+			PlayerEnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShip::Look);
 		}
 		if (RollAction)
 		{
-			PlayerEnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Roll);
+			PlayerEnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASpaceShip::Roll);
 		}
 	}
 }
 
-// Set up input mapping context when the pawn restarts
-void APlayerCharacter::PawnClientRestart()
+void ASpaceShip::PawnClientRestart()
 {
 	Super::PawnClientRestart();
 
@@ -136,23 +130,19 @@ void APlayerCharacter::PawnClientRestart()
 	}
 }
 
-// Handle thrust input for 3D movement
-void APlayerCharacter::Thrust(const FInputActionValue& ActionValue)
+void ASpaceShip::Thrust(const FInputActionValue& ActionValue)
 {
 	if (Controller != nullptr)
 	{
 		FRotator ActorRotation = GetActorRotation();
 
-		// Calculate thrust vectors for each direction
 		const FVector ForwardThrust = ActorRotation.Vector() * ActionValue[0];
 		const FVector RightThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Y) * ActionValue[1];
 		const FVector UpThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Z) * ActionValue[2];
 
-		// Combine thrust vectors
 		const FVector ThrustDirection = ForwardThrust + RightThrust + UpThrust;
         
-		// Apply thrust to character's velocity
 		FVector NewVelocity = GetVelocity() + ThrustDirection * 400.0f * GetWorld()->GetDeltaSeconds();
-		GetCharacterMovement()->Velocity = NewVelocity;
+		FloatingPawnMovement->Velocity = NewVelocity;
 	}
 }
