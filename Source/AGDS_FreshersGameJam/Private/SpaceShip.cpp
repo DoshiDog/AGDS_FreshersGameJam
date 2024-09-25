@@ -138,11 +138,11 @@ void ASpaceShip::Thrust(const FInputActionValue& ActionValue)
 
 		const FVector ForwardThrust = ActorRotation.Vector() * ActionValue[0];
 		const FVector RightThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Y) * ActionValue[1];
-		const FVector UpThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Z) * ActionValue[2];
+		const FVector UpThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Z) * ActionValue[2] * 5;
 
 		const FVector ThrustDirection = ForwardThrust + RightThrust + UpThrust;
         
-		FVector NewVelocity = GetVelocity() + ThrustDirection * 400.0f * GetWorld()->GetDeltaSeconds();
+		FVector NewVelocity = GetVelocity() + ThrustDirection * 4000.0f * GetWorld()->GetDeltaSeconds();
 		FloatingPawnMovement->Velocity = NewVelocity;
 	}
 }
