@@ -4,11 +4,13 @@
 #include "SpaceShip.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
+
 
 // Constructor: Initialize the spaceship with default values and set up movement
 ASpaceShip::ASpaceShip(): LookAction(nullptr), ThrustAction(nullptr), RollAction(nullptr),
-                          MappingContext(nullptr), CurrentRollVelocity(0.0f)
+                          MappingContext(nullptr), CurrentRollVelocity(0.0f), bIsLanded(false)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -18,6 +20,11 @@ ASpaceShip::ASpaceShip(): LookAction(nullptr), ThrustAction(nullptr), RollAction
 	FloatingPawnMovement->MaxSpeed = 1000.0f;
 	FloatingPawnMovement->Acceleration = 400.0f;
 	FloatingPawnMovement->Deceleration = 200.0f;
+
+	// Create a capsule component for collision detection
+	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	BoxComponent->SetupAttachment(RootComponent);
+	BoxComponent->SetCollisionProfileName(TEXT("Pawn"));
 }
 
 void ASpaceShip::BeginPlay()
@@ -32,18 +39,22 @@ void ASpaceShip::Tick(float DeltaTime)
 	UpdateRotation(DeltaTime);
 	UpdateSmoothInput(DeltaTime);
 	CalculateTargetRotation();
+	CheckForLanding();
 }
 
 void ASpaceShip::UpdateRotation(float DeltaTime)
 {
-	FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 2.5f);
-	
-	if (!FMath::IsNearlyZero(CurrentRollVelocity, 0.1f))
+	if (!bIsLanded)
 	{
-		NewRotation.Roll += CurrentRollVelocity * DeltaTime;
-		CurrentRollVelocity = FMath::FInterpTo(CurrentRollVelocity, 0.0f, DeltaTime, 1.0f);
+		FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 2.5f);
+		
+		if (!FMath::IsNearlyZero(CurrentRollVelocity, 0.1f))
+		{
+			NewRotation.Roll += CurrentRollVelocity * DeltaTime;
+			CurrentRollVelocity = FMath::FInterpTo(CurrentRollVelocity, 0.0f, DeltaTime, 1.0f);
+		}
+		SetActorRotation(NewRotation);
 	}
-	SetActorRotation(NewRotation);
 }
 
 void ASpaceShip::UpdateSmoothInput(float DeltaTime)
@@ -73,7 +84,7 @@ void ASpaceShip::CalculateTargetRotation()
 
 void ASpaceShip::Look(const FInputActionValue& ActionValue)
 {
-	if (Controller != nullptr)
+	if (Controller != nullptr && !bIsLanded)
 	{
 		if (ActionValue.GetValueType() == EInputActionValueType::Axis2D)
 		{
@@ -86,7 +97,7 @@ void ASpaceShip::Look(const FInputActionValue& ActionValue)
 
 void ASpaceShip::Roll(const FInputActionValue& ActionValue)
 {
-	if (Controller != nullptr)
+	if (Controller != nullptr && !bIsLanded)
 	{
 		float RollInput = ActionValue[0];
 		
@@ -134,15 +145,59 @@ void ASpaceShip::Thrust(const FInputActionValue& ActionValue)
 {
 	if (Controller != nullptr)
 	{
-		FRotator ActorRotation = GetActorRotation();
+		if (bIsLanded)
+		{
+			TakeOff();
+		}
+		else
+		{
+			FRotator ActorRotation = GetActorRotation();
 
-		const FVector ForwardThrust = ActorRotation.Vector() * ActionValue[0];
-		const FVector RightThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Y) * ActionValue[1];
-		const FVector UpThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Z) * ActionValue[2] * 5;
+			const FVector ForwardThrust = ActorRotation.Vector() * ActionValue[0];
+			const FVector RightThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Y) * ActionValue[1];
+			const FVector UpThrust = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Z) * ActionValue[2] * 5;
 
-		const FVector ThrustDirection = ForwardThrust + RightThrust + UpThrust;
-        
-		FVector NewVelocity = GetVelocity() + ThrustDirection * 4000.0f * GetWorld()->GetDeltaSeconds();
-		FloatingPawnMovement->Velocity = NewVelocity;
+			const FVector ThrustDirection = ForwardThrust + RightThrust + UpThrust;
+			
+			FVector NewVelocity = GetVelocity() + ThrustDirection * 4000.0f * GetWorld()->GetDeltaSeconds();
+			FloatingPawnMovement->Velocity = NewVelocity;
+		}
 	}
+}
+
+void ASpaceShip::CheckForLanding()
+{
+	if (!bIsLanded)
+	{
+		FVector Start = GetActorLocation();
+		FVector End = Start -  FRotationMatrix(GetActorRotation()).GetUnitAxis(EAxis::Z) * 500.0f;
+		FHitResult HitResult;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams))
+		{
+			if (FloatingPawnMovement->Velocity.SizeSquared() < 10000.0f) // Velocity less than 100 units/s
+			{
+				Land(HitResult.ImpactPoint, HitResult.ImpactNormal);
+			}
+		}
+	}
+}
+
+void ASpaceShip::Land(const FVector& LandingPoint, const FVector& SurfaceNormal)
+{
+	bIsLanded = true;
+	FloatingPawnMovement->StopMovementImmediately();
+	FloatingPawnMovement->SetActive(false);
+
+	FRotator LandingRotation = FRotationMatrix::MakeFromZ(SurfaceNormal).Rotator();
+	SetActorLocationAndRotation(LandingPoint + SurfaceNormal * 100.0f, LandingRotation, false, nullptr, ETeleportType::TeleportPhysics);
+}
+
+void ASpaceShip::TakeOff()
+{
+	bIsLanded = false;
+	FloatingPawnMovement->SetActive(true);
+	AddActorWorldOffset(FVector::UpVector * 100.0f, false, nullptr, ETeleportType::TeleportPhysics);
 }

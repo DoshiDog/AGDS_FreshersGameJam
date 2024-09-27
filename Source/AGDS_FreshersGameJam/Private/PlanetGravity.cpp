@@ -41,12 +41,14 @@ void APlanetGravity::Tick(float DeltaTime)
 	
 	TArray<AActor*> ArrayOverlappingActors;
 	GetOverlappingActors(ArrayOverlappingActors);
-
+    if (ArrayOverlappingActors.Num() == 0) {
+        UE_LOG(LogTemp, Warning, TEXT("Overlapping Component: None"));
+    }
 	for (AActor* OverlappingActor : ArrayOverlappingActors)
 	{
-		UPrimitiveComponent* OverlappingComponent = Cast<UPrimitiveComponent>(OverlappingActor->GetRootComponent());
+		UE_LOG(LogTemp, Warning, TEXT("Overlapping Component: %s"), *OverlappingActor->GetName());
 
-		if (OverlappingComponent)
+		if (UPrimitiveComponent* OverlappingComponent = Cast<UPrimitiveComponent>(OverlappingActor->GetRootComponent()))
 		{
 			// Calculate the direction towards the planet's center
 			FVector DirectionToPlanet = GetActorLocation() - OverlappingComponent->GetComponentLocation();
@@ -54,7 +56,7 @@ void APlanetGravity::Tick(float DeltaTime)
 
 			// Calculate pseudo gravity force
 			FVector PseudoGravityForce = DirectionToPlanet * GravityStrength;
-
+			UE_LOG(LogTemp, Warning, TEXT("Overlapping Component: %s"), *PseudoGravityForce.ToString());
 			// Apply the pseudo gravitational force or velocity
 			APawn* Pawn = Cast<APawn>(OverlappingActor);
 			if (Pawn)

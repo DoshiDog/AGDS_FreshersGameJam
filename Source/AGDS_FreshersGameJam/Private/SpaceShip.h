@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/Pawn.h"
 #include "SpaceShip.generated.h"
 
@@ -40,8 +41,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
 	class UInputMappingContext* MappingContext;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)	
+	UBoxComponent* BoxComponent;
+
 private:
 	float CurrentRollVelocity;
+	bool bIsLanded;
 	float PitchInput;
 	float YawInput;
 	float SmoothedPitchInput;
@@ -57,5 +62,8 @@ private:
 	void Look(const FInputActionValue& ActionValue);
 	void Roll(const FInputActionValue& ActionValue);
 	void Thrust(const FInputActionValue& ActionValue);
+	void CheckForLanding();
+	void Land(const FVector& LandingPoint, const FVector& SurfaceNormal);
+	void TakeOff();
 	void PawnClientRestart();
 };
